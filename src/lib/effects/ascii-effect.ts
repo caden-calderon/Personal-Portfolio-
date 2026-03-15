@@ -18,6 +18,7 @@ uniform float uCellSize;
 uniform bool uInvert;
 uniform vec3 uColor;
 uniform bool uUseColor;
+uniform float uGamma;
 
 const float GRID = ${ATLAS_GRID}.0;
 const float INV_GRID = 1.0 / GRID;
@@ -33,6 +34,9 @@ void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor)
     // Perceived brightness (ITU-R BT.601)
     float brightness = dot(sceneColor.rgb, vec3(0.299, 0.587, 0.114));
     brightness = clamp(brightness, 0.0, 1.0);
+
+    // Gamma correction — lifts dark values for better ASCII readability
+    brightness = pow(brightness, uGamma);
 
     if (uInvert) brightness = 1.0 - brightness;
 
@@ -53,8 +57,9 @@ void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor)
     // Sample glyph from atlas
     float glyph = texture2D(uCharacters, charUV).r;
 
-    // Output
+    // Boost glyph color for visibility
     vec3 outColor = uUseColor ? uColor : sceneColor.rgb;
+    outColor = pow(outColor, vec3(0.6));
     outputColor = vec4(outColor * glyph, inputColor.a);
 }
 `;
@@ -66,6 +71,7 @@ export interface AsciiEffectOptions {
 	cellSize?: number;
 	color?: string | null;
 	invert?: boolean;
+	gamma?: number;
 }
 
 export class AsciiEffect extends Effect {
@@ -76,7 +82,8 @@ export class AsciiEffect extends Effect {
 			fontSize = 54,
 			cellSize = 8,
 			color = null,
-			invert = false
+			invert = false,
+			gamma = 0.5
 		} = options;
 
 		const useColor = color !== null;
@@ -88,7 +95,8 @@ export class AsciiEffect extends Effect {
 			['uCharactersCount', new Uniform(characters.length)],
 			['uColor', new Uniform(colorValue)],
 			['uInvert', new Uniform(invert)],
-			['uUseColor', new Uniform(useColor)]
+			['uUseColor', new Uniform(useColor)],
+			['uGamma', new Uniform(gamma)]
 		]);
 
 		super('AsciiEffect', fragmentShader, { uniforms });

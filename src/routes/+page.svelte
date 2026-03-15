@@ -23,7 +23,7 @@
 {#if mounted}
 	<div class="relative h-screen w-screen overflow-hidden bg-black">
 		<!-- Threlte Canvas — GPU ASCII shader renders directly to this -->
-		<Canvas renderMode="always">
+		<Canvas renderMode="always" dpr={1}>
 			<TrainScene />
 			<GpuAsciiRenderer style={artStyle} />
 		</Canvas>
