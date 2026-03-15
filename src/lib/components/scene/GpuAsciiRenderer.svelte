@@ -11,10 +11,12 @@
 		CanvasTexture,
 		RepeatWrapping,
 		Texture,
+		DepthTexture,
 		OrthographicCamera,
 		BufferGeometry,
 		Float32BufferAttribute,
-		Mesh
+		Mesh,
+		BasicShadowMap
 	} from 'three';
 	import type { ArtStyle } from '$lib/types/art-style';
 
@@ -64,14 +66,17 @@
 		return tex;
 	}
 
-	// Scene render target — tiny, matching ASCII grid resolution
-	// This is the key optimization: scene renders at ~320x180 instead of 1920x1080
+	// Depth texture for edge detection
+	const depthTexture = new DepthTexture(1, 1);
+
+	// Scene render target with depth attachment
 	const sceneRT = new WebGLRenderTarget(1, 1, {
 		minFilter: NearestFilter,
 		magFilter: NearestFilter,
 		generateMipmaps: false,
 		depthBuffer: true,
-		stencilBuffer: false
+		stencilBuffer: false,
+		depthTexture: depthTexture
 	});
 
 	const initCfg = STYLE_CONFIGS.braille;
@@ -79,10 +84,12 @@
 	const asciiMaterial = new ShaderMaterial({
 		uniforms: {
 			tScene: new Uniform(sceneRT.texture),
+			tDepth: new Uniform(depthTexture),
 			uCharacters: new Uniform(createFontAtlas(initCfg.chars, initCfg.font)),
 			uCharactersCount: new Uniform(initCfg.chars.length),
 			uCellSize: new Uniform(initCfg.cellSize),
 			uGamma: new Uniform(0.35),
+			uEdgeStrength: new Uniform(0.85),
 			uColor: new Uniform(new Color(initCfg.color ?? '#ffffff')),
 			uUseColor: new Uniform(initCfg.color !== null),
 			uResolution: new Uniform(new Vector2(1, 1))
@@ -96,10 +103,12 @@
 		`,
 		fragmentShader: /* glsl */ `
 			uniform sampler2D tScene;
+			uniform sampler2D tDepth;
 			uniform sampler2D uCharacters;
 			uniform float uCharactersCount;
 			uniform float uCellSize;
 			uniform float uGamma;
+			uniform float uEdgeStrength;
 			uniform vec3 uColor;
 			uniform bool uUseColor;
 			uniform vec2 uResolution;
@@ -113,14 +122,37 @@
 				vec2 pixelCoord = vUv * uResolution;
 				vec2 cellCount = ceil(uResolution / uCellSize);
 				vec2 cell = floor(pixelCoord / uCellSize);
-
-				// Sample scene (rendered at cell resolution — one pixel per cell)
 				vec2 sceneUV = (cell + 0.5) / cellCount;
+				vec2 texelSize = 1.0 / cellCount;
+
+				// Sample scene color
 				vec4 sceneColor = texture2D(tScene, sceneUV);
 
-				// Brightness with gamma correction for ASCII visibility
+				// ---- Edge detection (depth + color) ----
+				// Depth edges — detect object boundaries
+				float dC = texture2D(tDepth, sceneUV).r;
+				float dL = texture2D(tDepth, sceneUV - vec2(texelSize.x, 0.0)).r;
+				float dR = texture2D(tDepth, sceneUV + vec2(texelSize.x, 0.0)).r;
+				float dU = texture2D(tDepth, sceneUV + vec2(0.0, texelSize.y)).r;
+				float dD = texture2D(tDepth, sceneUV - vec2(0.0, texelSize.y)).r;
+				float depthEdge = abs(dR - dL) + abs(dU - dD);
+
+				// Color edges — detect material boundaries at similar depths
+				vec3 cL = texture2D(tScene, sceneUV - vec2(texelSize.x, 0.0)).rgb;
+				vec3 cR = texture2D(tScene, sceneUV + vec2(texelSize.x, 0.0)).rgb;
+				vec3 cU = texture2D(tScene, sceneUV + vec2(0.0, texelSize.y)).rgb;
+				vec3 cD = texture2D(tScene, sceneUV - vec2(0.0, texelSize.y)).rgb;
+				float colorEdge = length(cR - cL) + length(cU - cD);
+
+				// Combine edges with tuned sensitivity
+				float edge = smoothstep(0.0, 0.3, depthEdge * 40.0 + colorEdge * 1.5);
+
+				// ---- Brightness ----
 				float brightness = dot(sceneColor.rgb, vec3(0.299, 0.587, 0.114));
 				brightness = pow(clamp(brightness, 0.0, 1.0), uGamma);
+
+				// Boost brightness at edges for visible outlines
+				brightness = mix(brightness, 1.0, edge * uEdgeStrength);
 
 				// Map brightness to character index
 				float charIdx = floor((uCharactersCount - 1.0) * brightness);
@@ -136,15 +168,17 @@
 
 				float glyph = texture2D(uCharacters, charUV).r;
 
-				// Color output with brightness boost
+				// Color output — edges get a slight warm tint
 				vec3 outColor = uUseColor ? uColor : sceneColor.rgb;
 				outColor = pow(outColor, vec3(0.6));
+				outColor = mix(outColor, vec3(1.0, 0.95, 0.85), edge * 0.3);
+
 				gl_FragColor = vec4(outColor * glyph, 1.0);
 			}
 		`
 	});
 
-	// Fullscreen triangle (more efficient than a quad — 3 vertices, no overdraw)
+	// Fullscreen triangle
 	const quadCam = new OrthographicCamera(-1, 1, 1, -1, 0, 1);
 	const quadGeo = new BufferGeometry();
 	quadGeo.setAttribute(
@@ -162,7 +196,6 @@
 		asciiMaterial.uniforms.uResolution.value.set(width, height);
 	}
 
-	// React to size changes
 	$effect(() => {
 		const s = size.current;
 		if (s.width > 0 && s.height > 0) {
@@ -170,7 +203,6 @@
 		}
 	});
 
-	// React to style changes
 	$effect(() => {
 		const cfg = STYLE_CONFIGS[style];
 		const oldTex = asciiMaterial.uniforms.uCharacters.value;
@@ -190,9 +222,15 @@
 	onMount(() => {
 		const prev = autoRender.current;
 		autoRender.set(false);
+
+		// Enable shadow maps on the renderer
+		renderer.shadowMap.enabled = true;
+		renderer.shadowMap.type = BasicShadowMap;
+
 		return () => {
 			autoRender.set(prev);
 			sceneRT.dispose();
+			depthTexture.dispose();
 			asciiMaterial.dispose();
 			quadGeo.dispose();
 			const charTex = asciiMaterial.uniforms.uCharacters.value;
@@ -202,12 +240,12 @@
 
 	useTask(
 		() => {
-			// Pass 1: Render 3D scene to tiny FBO (grid resolution, e.g., 320x180)
+			// Pass 1: Render 3D scene to tiny FBO with depth
 			renderer.setRenderTarget(sceneRT);
 			renderer.render(scene, camera.current);
 			renderer.setRenderTarget(null);
 
-			// Pass 2: Render ASCII fullscreen shader to screen (full resolution)
+			// Pass 2: ASCII shader with edge detection → screen
 			renderer.render(quadMesh, quadCam);
 		},
 		{ stage: renderStage, autoInvalidate: false }
