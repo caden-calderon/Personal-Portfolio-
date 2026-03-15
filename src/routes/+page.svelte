@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { Canvas } from '@threlte/core';
+	import { NoToneMapping } from 'three';
 	import TrainScene from '$lib/components/scene/TrainScene.svelte';
 	import GpuAsciiRenderer from '$lib/components/scene/GpuAsciiRenderer.svelte';
 	import FpsCounter from '$lib/components/ui/FpsCounter.svelte';
@@ -23,7 +24,7 @@
 {#if mounted}
 	<div class="relative h-screen w-screen overflow-hidden bg-black">
 		<!-- Threlte Canvas — GPU ASCII shader renders directly to this -->
-		<Canvas renderMode="always" dpr={1}>
+		<Canvas renderMode="always" dpr={1} toneMapping={NoToneMapping}>
 			<TrainScene />
 			<GpuAsciiRenderer style={artStyle} />
 		</Canvas>
