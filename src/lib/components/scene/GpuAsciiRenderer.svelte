@@ -82,7 +82,7 @@
 			uCharacters: new Uniform(createFontAtlas(initCfg.chars, initCfg.font)),
 			uCharactersCount: new Uniform(initCfg.chars.length),
 			uCellSize: new Uniform(initCfg.cellSize),
-			uGamma: new Uniform(0.5),
+			uGamma: new Uniform(0.35),
 			uColor: new Uniform(new Color(initCfg.color ?? '#ffffff')),
 			uUseColor: new Uniform(initCfg.color !== null),
 			uResolution: new Uniform(new Vector2(1, 1))
