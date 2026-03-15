@@ -1,6 +1,6 @@
 import { type ArtStyle, ART_STYLE_CONFIGS, type ArtStyleConfig } from '$lib/types/art-style';
 
-let currentStyle = $state<ArtStyle>('ascii');
+let currentStyle = $state<ArtStyle>('braille');
 
 export function getArtStyle(): ArtStyle {
 	return currentStyle;

@@ -1,18 +1,26 @@
 <script lang="ts">
 	import { useTask, useThrelte } from '@threlte/core';
 	import { onMount } from 'svelte';
-	import { WebGLRenderTarget, NearestFilter, RGBAFormat, UnsignedByteType } from 'three';
+	import {
+		WebGLRenderTarget,
+		NearestFilter,
+		RGBAFormat,
+		UnsignedByteType,
+		PerspectiveCamera
+	} from 'three';
 	import { type ArtStyle, ART_STYLE_CONFIGS } from '$lib/types/art-style';
 
 	let {
 		cols,
 		rows,
 		style,
+		fontSize,
 		outputCanvas
 	}: {
 		cols: number;
 		rows: number;
 		style: ArtStyle;
+		fontSize: number;
 		outputCanvas: HTMLCanvasElement;
 	} = $props();
 
@@ -50,13 +58,25 @@
 
 	useTask(
 		() => {
+			if (!outputCanvas || cols <= 0 || rows <= 0) return;
+
 			const config = ART_STYLE_CONFIGS[style];
 			const charset = config.charset;
 			const maxIdx = charset.length - 1;
 
+			// Ensure camera aspect matches viewport (not render target)
+			const cam = camera.current;
+			if (cam instanceof PerspectiveCamera) {
+				const viewportAspect = outputCanvas.width / outputCanvas.height;
+				if (Math.abs(cam.aspect - viewportAspect) > 0.01) {
+					cam.aspect = viewportAspect;
+					cam.updateProjectionMatrix();
+				}
+			}
+
 			// 1. Render scene to offscreen framebuffer
 			renderer.setRenderTarget(renderTarget);
-			renderer.render(scene, camera.current);
+			renderer.render(scene, cam);
 			renderer.setRenderTarget(null);
 
 			// 2. Read pixels back to CPU
@@ -68,14 +88,14 @@
 
 			const canvasW = outputCanvas.width;
 			const canvasH = outputCanvas.height;
-			const charW = canvasW / cols;
-			const charH = canvasH / rows;
 
-			ctx.clearRect(0, 0, canvasW, canvasH);
-			ctx.font = `${charH}px monospace`;
+			ctx.fillStyle = '#000000';
+			ctx.fillRect(0, 0, canvasW, canvasH);
+			ctx.font = `${fontSize}px monospace`;
 			ctx.textBaseline = 'top';
+			ctx.fillStyle = '#33ff33';
 
-			// Build and render one row at a time for performance
+			// Build and render one row at a time
 			for (let y = 0; y < rows; y++) {
 				let row = '';
 				// WebGL pixel buffer is bottom-to-top, flip y
@@ -93,8 +113,7 @@
 					row += charset[charIdx];
 				}
 
-				ctx.fillStyle = '#33ff33';
-				ctx.fillText(row, 0, y * charH);
+				ctx.fillText(row, 0, y * fontSize);
 			}
 		},
 		{ stage: renderStage, autoInvalidate: false }
