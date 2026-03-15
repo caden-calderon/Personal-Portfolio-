@@ -1,0 +1,44 @@
+node_modules
+
+# Output
+.output
+.vercel
+/.svelte-kit
+/build
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.*
+!.env.example
+
+# Vite
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+
+# Dev artifacts
+dev/active/*/context.md
+
+# Python tooling
+tools/__pycache__/
+tools/.venv/
+*.pyc
+
+# 3D assets (large binaries tracked via LFS or external)
+# Uncomment if using git-lfs:
+# *.glb
+# *.gltf
+
+# Audio
+# *.mp3
+# *.wav
+# *.ogg
+
+# Editor
+.idea/
+*.swp
+*.swo
+*~
