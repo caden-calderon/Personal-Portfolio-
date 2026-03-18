@@ -18,18 +18,13 @@ uniform int uColorMode;
 ${SHADER_COMMON}
 
 float resolveThreshold(vec2 cell) {
-	if (uAlgorithm == 0) {
-		return bayer4Threshold(cell);
-	}
-
-	if (uAlgorithm == 1) {
-		return bayer8Threshold(cell);
-	}
-
-	if (uAlgorithm == 2) {
-		return clusteredDotThreshold(cell);
-	}
-
+	if (uAlgorithm == 0) return bayer4Threshold(cell);
+	if (uAlgorithm == 1) return bayer8Threshold(cell);
+	if (uAlgorithm == 2) return clusteredDotThreshold(cell);
+	if (uAlgorithm == 3) return interleavedNoise(cell);
+	if (uAlgorithm == 4) return lineScreenThreshold(cell);
+	if (uAlgorithm == 5) return crosshatchThreshold(cell);
+	if (uAlgorithm == 6) return concentricThreshold(cell);
 	return interleavedNoise(cell);
 }
 
@@ -143,6 +138,12 @@ function encodeAlgorithm(algorithm: DitherSettings['algorithm']): number {
 			return 2;
 		case 'interleaved-noise':
 			return 3;
+		case 'line-screen':
+			return 4;
+		case 'crosshatch':
+			return 5;
+		case 'concentric':
+			return 6;
 	}
 }
 

@@ -10,10 +10,13 @@
 - The palette path is texture-backed and ready to grow toward imported palettes and higher-cardinality ramps.
 - The route shell no longer eagerly bundles the renderer stack. `LabViewport` lazy-loads `ChromaticEngine`, and Vite splits `three` and `postprocessing` into vendor chunks.
 - The current realtime-safe GPU dither set is:
-  - `bayer4`
-  - `bayer8`
-  - `clustered-dot`
-  - `interleaved-noise`
+  - `bayer4` — ordered, 4x4 matrix
+  - `bayer8` — ordered, 8x8 matrix
+  - `clustered-dot` — screened, radial clusters
+  - `interleaved-noise` — stochastic, hash-based
+  - `line-screen` — screened, sine-wave halftone stripes at 45 degrees
+  - `crosshatch` — ordered, layered diagonal lines that accumulate with tone
+  - `concentric` — screened, concentric rings radiating from tile centers
 - The lab shell now supports:
   - viewport-pinned layout
   - sidebar-only scrolling

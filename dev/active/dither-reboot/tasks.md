@@ -43,10 +43,11 @@
 - Fix the lazy-load controls regression. `LabViewport` now reads `settings` before the engine null-guard in its reactive effect so settings changes remain tracked after the async engine import resolves.
 - Restore `rgb` to the public color-mode selector as an explicit experimental option so the UI matches the implemented engine path.
 
+- Add three new GPU-safe dither algorithms: Line Screen (halftone sine-wave stripes, screened), Crosshatch (layered diagonal accumulation, ordered), Concentric Screen (tiling concentric rings, screened). All pure math, no textures. Algorithm count now 7.
+
 ## Next
 
-- Refine shader quality now that prep and color-mode boundaries are in place.
-- Add at least one more GPU-safe dither family after the current four (likely modulation or screen-flow).
+- Refine shader quality now that the algorithm set is broader.
 - Decide whether `rgb` mode should be palette-count-based, palette-derived, or moved out of `PaletteSettings` before it returns to the UI.
 - Design the settings shape for future masks, transparency-aware processing, and text overlays without coupling them to Svelte or route code.
 - Decide whether capture/export hooks belong in the engine core or in adjacent tooling.

@@ -213,4 +213,34 @@ float clusteredDotThreshold(vec2 cell) {
 float interleavedNoise(vec2 cell) {
 	return fract(52.9829189 * fract(dot(cell, vec2(0.06711056, 0.00583715))));
 }
+
+float lineScreenThreshold(vec2 cell) {
+	const float ANGLE = 0.7854;
+	const float FREQ = 1.0;
+	float rotated = cell.x * cos(ANGLE) + cell.y * sin(ANGLE);
+	return 0.5 + 0.5 * sin(rotated * FREQ);
+}
+
+float crosshatchThreshold(vec2 cell) {
+	const float SPACING = 6.0;
+	const float HALF = SPACING * 0.5;
+
+	float d1 = abs(mod(cell.x + cell.y, SPACING) - HALF) / HALF;
+	float d2 = abs(mod(cell.x - cell.y, SPACING) - HALF) / HALF;
+	float d3 = abs(mod(cell.x + cell.y + HALF, SPACING) - HALF) / HALF;
+
+	float near = min(d1, min(d2, d3));
+	float mid = max(min(d1, d2), min(max(d1, d2), d3));
+
+	return clamp(near * 0.4 + mid * 0.6, 0.0, 1.0);
+}
+
+float concentricThreshold(vec2 cell) {
+	const float TILE = 7.0;
+	const float RINGS = 2.0;
+
+	vec2 tile = mod(cell, TILE) - TILE * 0.5;
+	float dist = length(tile) / (TILE * 0.5);
+	return 0.5 + 0.5 * sin(dist * RINGS * 6.2832);
+}
 `;

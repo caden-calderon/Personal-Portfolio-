@@ -2,7 +2,10 @@ export const DITHER_ALGORITHM_IDS = [
 	'bayer4',
 	'bayer8',
 	'clustered-dot',
-	'interleaved-noise'
+	'interleaved-noise',
+	'line-screen',
+	'crosshatch',
+	'concentric'
 ] as const;
 
 export type DitherAlgorithmId = (typeof DITHER_ALGORITHM_IDS)[number];
@@ -70,6 +73,45 @@ export const DITHER_ALGORITHMS: readonly DitherAlgorithmDefinition[] = [
 		label: 'Interleaved Noise',
 		description: 'Static stochastic thresholding with less visible grid repetition.',
 		family: 'stochastic',
+		capabilities: {
+			realtimeSafe: true,
+			animatedSafe: true,
+			deterministic: true,
+			paletteSafe: true,
+			experimental: false
+		}
+	},
+	{
+		id: 'line-screen',
+		label: 'Line Screen',
+		description: 'Parallel halftone stripes whose width modulates with tone. Woodcut feel.',
+		family: 'screened',
+		capabilities: {
+			realtimeSafe: true,
+			animatedSafe: true,
+			deterministic: true,
+			paletteSafe: true,
+			experimental: false
+		}
+	},
+	{
+		id: 'crosshatch',
+		label: 'Crosshatch',
+		description: 'Layered diagonal lines that accumulate as tone darkens. Pen-and-ink feel.',
+		family: 'ordered',
+		capabilities: {
+			realtimeSafe: true,
+			animatedSafe: true,
+			deterministic: true,
+			paletteSafe: true,
+			experimental: false
+		}
+	},
+	{
+		id: 'concentric',
+		label: 'Concentric Screen',
+		description: 'Concentric rings radiating from tile centers. Interference pattern feel.',
+		family: 'screened',
 		capabilities: {
 			realtimeSafe: true,
 			animatedSafe: true,
