@@ -1,26 +1,38 @@
-// Types
-export type { DeviceContext } from './types/device';
-export type { ArtStyle, ArtStyleConfig } from './types/art-style';
-export { ART_STYLES, ART_STYLE_CONFIGS } from './types/art-style';
-export type { AnimationClip, AnimationState, Keyframe } from './types/animation';
-export type {
-	LLMResponse,
-	CharacterMood,
-	CharacterAction,
-	ConversationMessage
-} from './types/llm';
-export type { ProjectManifestEntry, ProjectType, ProjectRuntime } from './types/project';
-
-// Stores
-export { getDeviceContext, initDeviceContext } from './stores/device.svelte';
-export { getArtStyle, getArtStyleConfig, setArtStyle } from './stores/art-style.svelte';
+export { ChromaticEngine } from './engine/chromatic-engine';
 export {
-	getMessages,
-	getIsLoading,
-	addMessage,
-	setLoading,
-	clearConversation
-} from './stores/conversation.svelte';
-
-// Services
-export type { StyleProcessor } from './services/style-processor';
+	CUSTOM_PRESET_ID,
+	DEFAULT_LAB_SETTINGS,
+	DEFAULT_PRESET_ID,
+	LAB_CONTROL_SCHEMA,
+	LAB_PRESETS,
+	MAX_PALETTE_COLORS,
+	buildPaletteRamp,
+	getPresetById,
+	parseLabSettings,
+	serializeLabSettings,
+	validateLabSettings
+} from './engine/settings';
+export { DITHER_ALGORITHMS } from './engine/dither-algorithms';
+export {
+	CURATED_PALETTES,
+	findCuratedPaletteIdForPalette,
+	getCuratedPaletteById
+} from './engine/palette-library';
+export type { CuratedPaletteDefinition } from './engine/palette-library';
+export type {
+	ControlFieldDefinition,
+	ControlSectionDefinition,
+	DitherSettings,
+	FinishSettings,
+	LabPreset,
+	LabSettings,
+	PaletteInterpolationMode,
+	PaletteSettings,
+	SceneSettings,
+	ToneSettings
+} from './engine/settings';
+export type {
+	DitherAlgorithmCapabilities,
+	DitherAlgorithmDefinition,
+	DitherAlgorithmId
+} from './engine/dither-algorithms';
