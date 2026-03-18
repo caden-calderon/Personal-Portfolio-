@@ -16,16 +16,16 @@ void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor)
 	vec2 texel = 1.0 / resolution;
 	vec3 center = inputColor.rgb;
 
-	vec3 neighbors = vec3(0.0);
-	neighbors += texture2D(inputBuffer, uv + vec2(-texel.x, -texel.y)).rgb;
-	neighbors += texture2D(inputBuffer, uv + vec2( 0.0,    -texel.y)).rgb;
-	neighbors += texture2D(inputBuffer, uv + vec2( texel.x, -texel.y)).rgb;
-	neighbors += texture2D(inputBuffer, uv + vec2(-texel.x,  0.0   )).rgb;
-	neighbors += texture2D(inputBuffer, uv + vec2( texel.x,  0.0   )).rgb;
-	neighbors += texture2D(inputBuffer, uv + vec2(-texel.x,  texel.y)).rgb;
-	neighbors += texture2D(inputBuffer, uv + vec2( 0.0,     texel.y)).rgb;
-	neighbors += texture2D(inputBuffer, uv + vec2( texel.x,  texel.y)).rgb;
-	vec3 lowPass = neighbors / 8.0;
+	vec3 samples = center;
+	samples += texture2D(inputBuffer, uv + vec2(-texel.x, -texel.y)).rgb;
+	samples += texture2D(inputBuffer, uv + vec2( 0.0,    -texel.y)).rgb;
+	samples += texture2D(inputBuffer, uv + vec2( texel.x, -texel.y)).rgb;
+	samples += texture2D(inputBuffer, uv + vec2(-texel.x,  0.0   )).rgb;
+	samples += texture2D(inputBuffer, uv + vec2( texel.x,  0.0   )).rgb;
+	samples += texture2D(inputBuffer, uv + vec2(-texel.x,  texel.y)).rgb;
+	samples += texture2D(inputBuffer, uv + vec2( 0.0,     texel.y)).rgb;
+	samples += texture2D(inputBuffer, uv + vec2( texel.x,  texel.y)).rgb;
+	vec3 lowPass = samples / 9.0;
 
 	vec3 blurred = mix(center, lowPass, uBlur);
 	vec3 highPass = center - lowPass;

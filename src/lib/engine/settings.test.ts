@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	COLOR_MODES,
 	DEFAULT_PRESET_ID,
+	LAB_CONTROL_SCHEMA,
 	LAB_PRESETS,
 	buildPaletteRamp,
 	getPresetById,
@@ -108,6 +109,21 @@ describe('validateLabSettings', () => {
 	it('exposes presets that include at least two color modes', () => {
 		const modes = new Set(LAB_PRESETS.map((preset) => preset.settings.palette.colorMode));
 		expect(modes.size).toBeGreaterThanOrEqual(2);
+	});
+
+	it('exposes all currently supported color modes in the public control schema', () => {
+		const paletteSection = LAB_CONTROL_SCHEMA.find((section) => section.id === 'palette');
+		const colorModeField = paletteSection?.fields.find((field) => field.path === 'palette.colorMode');
+		expect(colorModeField?.kind).toBe('enum');
+		if (!colorModeField || colorModeField.kind !== 'enum') {
+			throw new Error('Missing palette.colorMode enum field');
+		}
+		expect(colorModeField.options.map((option) => option.value)).toEqual([
+			'mono',
+			'tonal',
+			'indexed',
+			'rgb'
+		]);
 	});
 });
 

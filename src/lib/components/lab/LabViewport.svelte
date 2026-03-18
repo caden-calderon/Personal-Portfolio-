@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 
-	import { ChromaticEngine } from '$lib/engine/chromatic-engine';
 	import type { LabSettings } from '$lib/engine/settings';
 
 	const MIN_ZOOM = 1;
@@ -20,7 +19,7 @@
 	let container: HTMLDivElement;
 	let surface: HTMLDivElement;
 	let status = $state<'booting' | 'live'>('booting');
-	let engine: ChromaticEngine | null = null;
+	let engine: import('$lib/engine/chromatic-engine').ChromaticEngine | null = null;
 	let zoom = $state(1);
 	let panX = $state(0);
 	let panY = $state(0);
@@ -131,32 +130,46 @@
 	}
 
 	onMount(() => {
-		engine = new ChromaticEngine(settings);
-		engine.mount(canvas);
-		engine.start();
-		status = 'live';
+		let disposed = false;
+		let observer: ResizeObserver | null = null;
 
-		const observer = new ResizeObserver((entries) => {
-			const entry = entries[0];
-			if (!entry || !engine) return;
+		void (async () => {
+			const { ChromaticEngine } = await import('$lib/engine/chromatic-engine');
+			if (disposed) {
+				return;
+			}
 
-			engine.resize(entry.contentRect.width, entry.contentRect.height, window.devicePixelRatio);
-			const clampedPan = clampPan(panX, panY);
-			panX = clampedPan.x;
-			panY = clampedPan.y;
-		});
+			engine = new ChromaticEngine(settings);
+			engine.mount(canvas);
+			engine.start();
+			status = 'live';
 
-		observer.observe(container);
+			observer = new ResizeObserver((entries) => {
+				const entry = entries[0];
+				if (!entry || !engine) return;
+
+				engine.resize(entry.contentRect.width, entry.contentRect.height, window.devicePixelRatio);
+				const clampedPan = clampPan(panX, panY);
+				panX = clampedPan.x;
+				panY = clampedPan.y;
+			});
+
+			observer.observe(container);
+		})();
 
 		return () => {
-			observer.disconnect();
+			disposed = true;
+			observer?.disconnect();
 			engine?.dispose();
 			engine = null;
 		};
 	});
 
 	$effect(() => {
-		engine?.setSettings(settings);
+		const nextSettings = settings;
+		if (!engine) return;
+
+		engine.setSettings(nextSettings);
 	});
 </script>
 

@@ -32,22 +32,27 @@
 - Make the sidebar toggle persistent so the controls can always be restored after full-screening the stage.
 - Fix palette interpolation: interpolation modes were invisible when dithering was active because the dither pass discarded palette pass RGB and read only the alpha tone value. Interpolation now shapes the dither transition curve directly in the dither shader.
 - Add modular Prep stage (blur + sharpen) between scene render and tone pass. Single-pass 3x3 box filter with independent controls, early-return passthrough when both are zero.
-- Introduce typed color modes (`mono`, `tonal`, `indexed`, `rgb`) on the palette foundation. `mono` and `tonal` are fully implemented in the shader pipeline. `indexed` and `rgb` fall back to `tonal` for now.
+- Introduce typed color modes (`mono`, `tonal`, `indexed`, `rgb`) on the palette foundation. `mono`, `tonal`, and `indexed` are implemented in the active pipeline. `rgb` currently exists as an engine path but remains hidden from the public UI until its control semantics are cleaned up.
 - Wire color mode and prep controls into the settings schema, UI, presets, and validation.
 - Update unit tests to cover prep settings, color mode validation, and serialization round-trips.
 - Newsprint Draft preset now uses `mono` color mode to exercise both tonal and mono paths.
 - Implement `indexed` color mode with per-fragment nearest-color RGB distance search. Dithers between the two closest palette colors. Palette pass passes through original RGB so the dither pass can compute distances. Preview (dithering off) snaps to nearest palette color.
 - Implement `rgb` color mode with per-channel quantization and dithering. Each R, G, B channel is independently scaled to palette-size levels, dithered against the same spatial threshold, and quantized. Palette pass passes through original RGB. Preview (dithering off) snaps each channel to nearest level.
+- Review pass: fix mono preview so dither-disabled mono stays binary, correct the prep kernel to a true 3x3 box filter, and temporarily hide `rgb` from the public control schema pending semantics review.
+- Investigate the large client chunk. The route entry now lazy-loads `ChromaticEngine`, and Vite splits `three` and `postprocessing` into separate vendor chunks. Initial route payload is down to roughly 101 kB of preloaded JS; the remaining warning is the standalone `three` vendor chunk at roughly 501.6 kB. Testing `three/src/Three.js` made that worse, so the public package entry remains the baseline.
+- Fix the lazy-load controls regression. `LabViewport` now reads `settings` before the engine null-guard in its reactive effect so settings changes remain tracked after the async engine import resolves.
+- Restore `rgb` to the public color-mode selector as an explicit experimental option so the UI matches the implemented engine path.
 
 ## Next
 
 - Refine shader quality now that prep and color-mode boundaries are in place.
 - Add at least one more GPU-safe dither family after the current four (likely modulation or screen-flow).
+- Decide whether `rgb` mode should be palette-count-based, palette-derived, or moved out of `PaletteSettings` before it returns to the UI.
 - Design the settings shape for future masks, transparency-aware processing, and text overlays without coupling them to Svelte or route code.
 - Decide whether capture/export hooks belong in the engine core or in adjacent tooling.
 - Add the first image palette import flow and worker-side extraction path.
 - Decide whether the next evaluation target should be a richer primitive scene variant or the first Blender-driven environment slice.
-- Evaluate whether the large client chunk should be split once the lab surface stabilizes.
+- Revisit the remaining `three` vendor chunk only if route count grows, renderer reuse expands across pages, or import-level changes justify trading maintainability for finer-grained bundle splitting.
 - Update Playwright render regression baselines to match the interpolation fix and new pipeline shape.
 
 ## Later

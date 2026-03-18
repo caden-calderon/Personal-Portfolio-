@@ -29,7 +29,8 @@ void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor)
 
 	vec3 mapped;
 	if (uColorMode == 0) {
-		mapped = paletteColorMode(paletteTone, uPaletteTexture, uPaletteSize, 1);
+		float monoIndex = step(0.5, paletteTone) * levels;
+		mapped = paletteIndexColor(monoIndex, uPaletteTexture, uPaletteSize);
 	} else {
 		mapped = paletteColorMode(paletteTone, uPaletteTexture, uPaletteSize, uInterpolation);
 	}

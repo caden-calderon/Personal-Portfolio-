@@ -12,6 +12,12 @@ export const CUSTOM_PRESET_ID = 'custom';
 export const DEFAULT_PRESET_ID = 'amber-bayer';
 export const PALETTE_INTERPOLATION_MODES = ['linear', 'step', 'contrast'] as const;
 export const COLOR_MODES = ['mono', 'tonal', 'indexed', 'rgb'] as const;
+export const LAB_COLOR_MODE_OPTIONS = [
+	{ value: 'mono', label: 'Mono' },
+	{ value: 'tonal', label: 'Tonal' },
+	{ value: 'indexed', label: 'Indexed' },
+	{ value: 'rgb', label: 'RGB (Experimental)' }
+] as const satisfies readonly { value: ColorMode; label: string }[];
 
 export type PaletteInterpolationMode = (typeof PALETTE_INTERPOLATION_MODES)[number];
 export type ColorMode = (typeof COLOR_MODES)[number];
@@ -293,12 +299,7 @@ export const LAB_CONTROL_SCHEMA: readonly ControlSectionDefinition[] = [
 				kind: 'enum',
 				path: 'palette.colorMode',
 				label: 'Color Mode',
-				options: [
-					{ value: 'mono', label: 'Mono' },
-					{ value: 'tonal', label: 'Tonal' },
-					{ value: 'indexed', label: 'Indexed' },
-					{ value: 'rgb', label: 'RGB' }
-				]
+				options: LAB_COLOR_MODE_OPTIONS
 			},
 			{
 				kind: 'enum',
