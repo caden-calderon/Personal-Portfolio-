@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+	COLOR_MODES,
 	DEFAULT_PRESET_ID,
 	LAB_PRESETS,
 	buildPaletteRamp,
@@ -19,6 +20,7 @@ describe('validateLabSettings', () => {
 
 		const settings = validateLabSettings({
 			scene: { spin: 99, float: -1 },
+			prep: { blur: 5, sharpen: -1 },
 			tone: {
 				exposure: -9,
 				contrast: 9,
@@ -27,6 +29,7 @@ describe('validateLabSettings', () => {
 				posterize: 99
 			},
 			palette: {
+				colorMode: 'nonsense',
 				background: 'invalid',
 				swatches: ['#123', '#abcDEF', 'broken', ...manySwatches],
 				interpolation: 'broken',
@@ -46,6 +49,7 @@ describe('validateLabSettings', () => {
 		} as unknown as LabSettingsInput);
 
 		expect(settings.scene).toEqual({ spin: 2, float: 0 });
+		expect(settings.prep).toEqual({ blur: 1, sharpen: 0 });
 		expect(settings.tone).toEqual({
 			exposure: -2,
 			contrast: 2,
@@ -55,6 +59,7 @@ describe('validateLabSettings', () => {
 		});
 		expect(settings.palette.background).toBe('#081018');
 		expect(settings.palette).toEqual({
+			colorMode: 'tonal',
 			background: '#081018',
 			swatches: ['#112233', '#abcdef', '#e6bc72', ...manySwatches].slice(0, 63),
 			interpolation: 'linear',
@@ -65,6 +70,24 @@ describe('validateLabSettings', () => {
 		expect(settings.dither.pixelSize).toBe(8);
 		expect(settings.dither.intensity).toBe(0);
 		expect(settings.finish).toEqual({ vignette: 1, grain: 0 });
+	});
+
+	it('validates color mode enum values', () => {
+		for (const mode of COLOR_MODES) {
+			const settings = validateLabSettings({ palette: { colorMode: mode } } as LabSettingsInput);
+			expect(settings.palette.colorMode).toBe(mode);
+		}
+
+		const fallback = validateLabSettings({
+			palette: { colorMode: 'invalid' }
+		} as unknown as LabSettingsInput);
+		expect(fallback.palette.colorMode).toBe('tonal');
+	});
+
+	it('validates prep settings with defaults when omitted', () => {
+		const settings = validateLabSettings({});
+		expect(settings.prep.blur).toBe(0);
+		expect(settings.prep.sharpen).toBe(0);
 	});
 
 	it('exposes presets that exercise distinct dither families', () => {
@@ -81,6 +104,11 @@ describe('validateLabSettings', () => {
 		expect(modes.has('step')).toBe(true);
 		expect(modes.has('contrast')).toBe(true);
 	});
+
+	it('exposes presets that include at least two color modes', () => {
+		const modes = new Set(LAB_PRESETS.map((preset) => preset.settings.palette.colorMode));
+		expect(modes.size).toBeGreaterThanOrEqual(2);
+	});
 });
 
 describe('settings serialization', () => {
@@ -96,5 +124,20 @@ describe('settings serialization', () => {
 			parsed.palette.background,
 			...parsed.palette.swatches
 		]);
+	});
+
+	it('round-trips prep and colorMode through JSON', () => {
+		const preset = getPresetById(DEFAULT_PRESET_ID)!;
+		const modified = {
+			...preset.settings,
+			prep: { blur: 0.4, sharpen: 0.6 },
+			palette: { ...preset.settings.palette, colorMode: 'mono' as const }
+		};
+
+		const serialized = serializeLabSettings(modified);
+		const parsed = parseLabSettings(serialized);
+
+		expect(parsed.prep).toEqual({ blur: 0.4, sharpen: 0.6 });
+		expect(parsed.palette.colorMode).toBe('mono');
 	});
 });

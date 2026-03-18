@@ -11,12 +11,19 @@ export const MAX_PALETTE_SWATCHES = MAX_PALETTE_COLORS - 1;
 export const CUSTOM_PRESET_ID = 'custom';
 export const DEFAULT_PRESET_ID = 'amber-bayer';
 export const PALETTE_INTERPOLATION_MODES = ['linear', 'step', 'contrast'] as const;
+export const COLOR_MODES = ['mono', 'tonal', 'indexed', 'rgb'] as const;
 
 export type PaletteInterpolationMode = (typeof PALETTE_INTERPOLATION_MODES)[number];
+export type ColorMode = (typeof COLOR_MODES)[number];
 
 export interface SceneSettings {
 	spin: number;
 	float: number;
+}
+
+export interface PrepSettings {
+	blur: number;
+	sharpen: number;
 }
 
 export interface ToneSettings {
@@ -28,6 +35,7 @@ export interface ToneSettings {
 }
 
 export interface PaletteSettings {
+	colorMode: ColorMode;
 	background: string;
 	swatches: string[];
 	interpolation: PaletteInterpolationMode;
@@ -49,6 +57,7 @@ export interface FinishSettings {
 
 export interface LabSettings {
 	scene: SceneSettings;
+	prep: PrepSettings;
 	tone: ToneSettings;
 	palette: PaletteSettings;
 	dither: DitherSettings;
@@ -97,8 +106,9 @@ export interface ControlSectionDefinition {
 
 export interface LabSettingsInput {
 	scene?: Partial<SceneSettings>;
+	prep?: Partial<PrepSettings>;
 	tone?: Partial<ToneSettings>;
-	palette?: Partial<PaletteSettings>;
+	palette?: Omit<Partial<PaletteSettings>, 'colorMode'> & { colorMode?: string };
 	dither?: Omit<Partial<DitherSettings>, 'algorithm'> & { algorithm?: string };
 	finish?: Partial<FinishSettings>;
 }
@@ -114,6 +124,10 @@ export const DEFAULT_LAB_SETTINGS: LabSettings = {
 		spin: 0.45,
 		float: 0.18
 	},
+	prep: {
+		blur: 0,
+		sharpen: 0
+	},
 	tone: {
 		exposure: 0.1,
 		contrast: 1.18,
@@ -122,6 +136,7 @@ export const DEFAULT_LAB_SETTINGS: LabSettings = {
 		posterize: 0
 	},
 	palette: {
+		colorMode: 'tonal',
 		background: retroAmberPalette.background,
 		swatches: [...retroAmberPalette.swatches],
 		interpolation: 'linear',
@@ -156,6 +171,10 @@ export const LAB_PRESETS: readonly LabPreset[] = [
 				spin: 0.3,
 				float: 0.14
 			},
+			prep: {
+				blur: 0,
+				sharpen: 0
+			},
 			tone: {
 				exposure: -0.05,
 				contrast: 1.32,
@@ -164,6 +183,7 @@ export const LAB_PRESETS: readonly LabPreset[] = [
 				posterize: 0
 			},
 			palette: {
+				colorMode: 'tonal',
 				background: vibrantSignalPalette.background,
 				swatches: [...vibrantSignalPalette.swatches],
 				interpolation: 'contrast',
@@ -191,6 +211,10 @@ export const LAB_PRESETS: readonly LabPreset[] = [
 				spin: 0.22,
 				float: 0.1
 			},
+			prep: {
+				blur: 0,
+				sharpen: 0
+			},
 			tone: {
 				exposure: 0.12,
 				contrast: 1.28,
@@ -199,6 +223,7 @@ export const LAB_PRESETS: readonly LabPreset[] = [
 				posterize: 0
 			},
 			palette: {
+				colorMode: 'tonal',
 				background: oxideCopperPalette.background,
 				swatches: [...oxideCopperPalette.swatches],
 				interpolation: 'step',
@@ -226,6 +251,10 @@ export const LAB_PRESETS: readonly LabPreset[] = [
 				spin: 0.56,
 				float: 0.2
 			},
+			prep: {
+				blur: 0,
+				sharpen: 0
+			},
 			tone: {
 				exposure: 0.22,
 				contrast: 1.36,
@@ -234,6 +263,7 @@ export const LAB_PRESETS: readonly LabPreset[] = [
 				posterize: 4
 			},
 			palette: {
+				colorMode: 'mono',
 				background: newsprintGrayPalette.background,
 				swatches: [...newsprintGrayPalette.swatches],
 				interpolation: 'step',
@@ -261,6 +291,17 @@ export const LAB_CONTROL_SCHEMA: readonly ControlSectionDefinition[] = [
 		fields: [
 			{
 				kind: 'enum',
+				path: 'palette.colorMode',
+				label: 'Color Mode',
+				options: [
+					{ value: 'mono', label: 'Mono' },
+					{ value: 'tonal', label: 'Tonal' },
+					{ value: 'indexed', label: 'Indexed' },
+					{ value: 'rgb', label: 'RGB' }
+				]
+			},
+			{
+				kind: 'enum',
 				path: 'palette.interpolation',
 				label: 'Interpolation',
 				options: [
@@ -271,6 +312,14 @@ export const LAB_CONTROL_SCHEMA: readonly ControlSectionDefinition[] = [
 			},
 			{ kind: 'number', path: 'palette.quantize', label: 'Quantize', min: 0, max: 1, step: 0.01 },
 			{ kind: 'number', path: 'palette.bias', label: 'Bias', min: -1, max: 1, step: 0.01 }
+		]
+	},
+	{
+		id: 'prep',
+		label: 'Prep',
+		fields: [
+			{ kind: 'number', path: 'prep.blur', label: 'Blur', min: 0, max: 1, step: 0.01 },
+			{ kind: 'number', path: 'prep.sharpen', label: 'Sharpen', min: 0, max: 1, step: 0.01 }
 		]
 	},
 	{
@@ -335,6 +384,10 @@ function isPaletteInterpolationMode(value: string): value is PaletteInterpolatio
 	return PALETTE_INTERPOLATION_MODES.includes(value as PaletteInterpolationMode);
 }
 
+function isColorMode(value: string): value is ColorMode {
+	return COLOR_MODES.includes(value as ColorMode);
+}
+
 function requireCuratedPalette(id: string) {
 	const palette = getCuratedPaletteById(id);
 	if (!palette) {
@@ -347,8 +400,10 @@ function requireCuratedPalette(id: string) {
 function cloneDefaultSettings(): LabSettings {
 	return {
 		scene: { ...DEFAULT_LAB_SETTINGS.scene },
+		prep: { ...DEFAULT_LAB_SETTINGS.prep },
 		tone: { ...DEFAULT_LAB_SETTINGS.tone },
 		palette: {
+			colorMode: DEFAULT_LAB_SETTINGS.palette.colorMode,
 			background: DEFAULT_LAB_SETTINGS.palette.background,
 			swatches: [...DEFAULT_LAB_SETTINGS.palette.swatches],
 			interpolation: DEFAULT_LAB_SETTINGS.palette.interpolation,
@@ -372,11 +427,19 @@ export function validateLabSettings(input: LabSettingsInput | LabSettings = {}):
 	next.scene.spin = clamp(source.scene?.spin ?? defaults.scene.spin, 0, 2);
 	next.scene.float = clamp(source.scene?.float ?? defaults.scene.float, 0, 1);
 
+	next.prep.blur = clamp(source.prep?.blur ?? defaults.prep.blur, 0, 1);
+	next.prep.sharpen = clamp(source.prep?.sharpen ?? defaults.prep.sharpen, 0, 1);
+
 	next.tone.exposure = clamp(source.tone?.exposure ?? defaults.tone.exposure, -2, 2);
 	next.tone.contrast = clamp(source.tone?.contrast ?? defaults.tone.contrast, 0.5, 2);
 	next.tone.brightness = clamp(source.tone?.brightness ?? defaults.tone.brightness, -0.5, 0.5);
 	next.tone.gamma = clamp(source.tone?.gamma ?? defaults.tone.gamma, 0.5, 2);
 	next.tone.posterize = clamp(Math.round(source.tone?.posterize ?? defaults.tone.posterize), 0, 8);
+
+	const colorModeCandidate = source.palette?.colorMode ?? defaults.palette.colorMode;
+	next.palette.colorMode = isColorMode(colorModeCandidate)
+		? colorModeCandidate
+		: defaults.palette.colorMode;
 
 	next.palette.background = normalizeHexColor(
 		source.palette?.background ?? defaults.palette.background,

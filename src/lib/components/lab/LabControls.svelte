@@ -38,6 +38,16 @@
 		});
 	}
 
+	function updatePrep(key: keyof LabSettings['prep'], value: number): void {
+		applySettings({
+			...settings,
+			prep: {
+				...settings.prep,
+				[key]: value
+			}
+		});
+	}
+
 	function updateTone(key: keyof LabSettings['tone'], value: number): void {
 		applySettings({
 			...settings,
@@ -166,8 +176,8 @@
 		<div class="controls__section-header">
 			<h2>Palette</h2>
 			<p>
-				Palette mapping now owns interpolation, bias, and banding before dithering, and
-				the engine can grow toward imported palettes without changing the pass boundary.
+				Color mode selects how the palette is used. Interpolation shapes the dither
+				transition curve. Quantize and bias control tonal mapping before thresholding.
 			</p>
 		</div>
 
@@ -200,7 +210,23 @@
 
 		{#if paletteSection}
 			{#each paletteSection.fields as field}
-				{#if field.kind === 'enum' && field.path === 'palette.interpolation'}
+				{#if field.kind === 'enum' && field.path === 'palette.colorMode'}
+					<label class="controls__field">
+						<span>{field.label}</span>
+						<select
+							value={settings.palette.colorMode}
+							onchange={(event) =>
+								updatePaletteSetting(
+									'colorMode',
+									(event.currentTarget as HTMLSelectElement).value as LabSettings['palette']['colorMode']
+								)}
+						>
+							{#each field.options as option}
+								<option value={option.value}>{option.label}</option>
+							{/each}
+						</select>
+					</label>
+				{:else if field.kind === 'enum' && field.path === 'palette.interpolation'}
 					<label class="controls__field">
 						<span>{field.label}</span>
 						<select
@@ -287,10 +313,10 @@
 			<div class="controls__section-header">
 				<h2>{section.label}</h2>
 				<p>
-					{section.id === 'dither'
-						? 'Realtime-safe algorithm families with explicit artistic tradeoffs.'
-						: section.id === 'palette'
-							? 'Palette controls are surfaced above with the color ramp.'
+					{section.id === 'prep'
+						? 'Image conditioning before tone mapping. Both off by default.'
+						: section.id === 'dither'
+							? 'Realtime-safe algorithm families with explicit artistic tradeoffs.'
 						: 'Typed control metadata is ready for a future generated UI.'}
 				</p>
 			</div>
@@ -331,7 +357,27 @@
 					<label class="controls__field">
 						<span>{field.label}</span>
 
-						{#if field.path === 'tone.exposure'}
+						{#if field.path === 'prep.blur'}
+							<input
+								type="range"
+								min={field.min}
+								max={field.max}
+								step={field.step}
+								value={settings.prep.blur}
+								oninput={(event) => updatePrep('blur', Number((event.currentTarget as HTMLInputElement).value))}
+							/>
+							<output>{settings.prep.blur.toFixed(2)}</output>
+						{:else if field.path === 'prep.sharpen'}
+							<input
+								type="range"
+								min={field.min}
+								max={field.max}
+								step={field.step}
+								value={settings.prep.sharpen}
+								oninput={(event) => updatePrep('sharpen', Number((event.currentTarget as HTMLInputElement).value))}
+							/>
+							<output>{settings.prep.sharpen.toFixed(2)}</output>
+						{:else if field.path === 'tone.exposure'}
 							<input
 								type="range"
 								min={field.min}

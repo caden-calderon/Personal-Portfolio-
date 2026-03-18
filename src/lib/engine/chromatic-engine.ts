@@ -5,6 +5,7 @@ import { createDemoScene, type SceneBundle } from './scene';
 import { DitherEffect } from './passes/dither-effect';
 import { FinishEffect } from './passes/finish-effect';
 import { PaletteEffect } from './passes/palette-effect';
+import { PrepEffect } from './passes/prep-effect';
 import { ToneEffect } from './passes/tone-effect';
 import { type LabSettings, validateLabSettings } from './settings';
 
@@ -14,6 +15,7 @@ export class ChromaticEngine {
 	private composer: EffectComposer | null = null;
 	private renderPass: RenderPass | null = null;
 	private sceneBundle: SceneBundle | null = null;
+	private prepEffect: PrepEffect | null = null;
 	private toneEffect: ToneEffect | null = null;
 	private paletteEffect: PaletteEffect | null = null;
 	private ditherEffect: DitherEffect | null = null;
@@ -39,6 +41,7 @@ export class ChromaticEngine {
 		this.renderer.setClearColor(this.settings.palette.background, 1);
 
 		this.sceneBundle = createDemoScene(this.settings.scene);
+		this.prepEffect = new PrepEffect(this.settings.prep);
 		this.toneEffect = new ToneEffect(this.settings.tone);
 		this.paletteEffect = new PaletteEffect(this.settings.palette);
 		this.ditherEffect = new DitherEffect(this.settings.palette, this.settings.dither);
@@ -47,6 +50,7 @@ export class ChromaticEngine {
 
 		this.composer = new EffectComposer(this.renderer, { multisampling: 0 });
 		this.composer.addPass(this.renderPass);
+		this.composer.addPass(new EffectPass(this.sceneBundle.camera, this.prepEffect));
 		this.composer.addPass(new EffectPass(this.sceneBundle.camera, this.toneEffect));
 		this.composer.addPass(new EffectPass(this.sceneBundle.camera, this.paletteEffect));
 		this.composer.addPass(new EffectPass(this.sceneBundle.camera, this.ditherEffect));
@@ -82,6 +86,7 @@ export class ChromaticEngine {
 		this.settings = validateLabSettings(nextSettings);
 		this.renderer?.setClearColor(this.settings.palette.background, 1);
 		this.sceneBundle?.applySettings(this.settings.scene);
+		this.prepEffect?.applySettings(this.settings.prep);
 		this.toneEffect?.applySettings(this.settings.tone);
 		this.paletteEffect?.applySettings(this.settings.palette);
 		this.ditherEffect?.applySettings(this.settings.palette, this.settings.dither);
@@ -108,6 +113,7 @@ export class ChromaticEngine {
 		this.renderer?.dispose();
 		this.renderPass = null;
 		this.sceneBundle = null;
+		this.prepEffect = null;
 		this.toneEffect = null;
 		this.paletteEffect = null;
 		this.ditherEffect = null;

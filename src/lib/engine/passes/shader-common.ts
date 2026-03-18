@@ -60,6 +60,25 @@ vec3 paletteColorMode(float tone, sampler2D paletteTexture, int paletteSize, int
 	return mix(a, b, blend);
 }
 
+vec3 paletteNearestColor(vec3 pixel, sampler2D paletteTexture, int paletteSize) {
+	float bestDist = 1e10;
+	vec3 nearest = paletteIndexColor(0.0, paletteTexture, paletteSize);
+
+	for (int i = 0; i < MAX_PALETTE_COLORS; i++) {
+		if (i >= paletteSize) break;
+		vec3 c = paletteIndexColor(float(i), paletteTexture, paletteSize);
+		vec3 diff = pixel - c;
+		float d = dot(diff, diff);
+
+		if (d < bestDist) {
+			bestDist = d;
+			nearest = c;
+		}
+	}
+
+	return nearest;
+}
+
 float bayer4Threshold(vec2 cell) {
 	vec2 p = mod(cell, 4.0);
 

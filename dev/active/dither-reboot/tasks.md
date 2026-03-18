@@ -30,18 +30,25 @@
 - Add a collapsible sidebar so the render stage can take the full page width.
 - Add viewport zoom and pan inspection controls without pushing that responsibility into the engine.
 - Make the sidebar toggle persistent so the controls can always be restored after full-screening the stage.
+- Fix palette interpolation: interpolation modes were invisible when dithering was active because the dither pass discarded palette pass RGB and read only the alpha tone value. Interpolation now shapes the dither transition curve directly in the dither shader.
+- Add modular Prep stage (blur + sharpen) between scene render and tone pass. Single-pass 3x3 box filter with independent controls, early-return passthrough when both are zero.
+- Introduce typed color modes (`mono`, `tonal`, `indexed`, `rgb`) on the palette foundation. `mono` and `tonal` are fully implemented in the shader pipeline. `indexed` and `rgb` fall back to `tonal` for now.
+- Wire color mode and prep controls into the settings schema, UI, presets, and validation.
+- Update unit tests to cover prep settings, color mode validation, and serialization round-trips.
+- Newsprint Draft preset now uses `mono` color mode to exercise both tonal and mono paths.
+- Implement `indexed` color mode with per-fragment nearest-color RGB distance search. Dithers between the two closest palette colors. Palette pass passes through original RGB so the dither pass can compute distances. Preview (dithering off) snaps to nearest palette color.
+- Implement `rgb` color mode with per-channel quantization and dithering. Each R, G, B channel is independently scaled to palette-size levels, dithered against the same spatial threshold, and quantized. Palette pass passes through original RGB. Preview (dithering off) snaps each channel to nearest level.
 
 ## Next
 
-- Add a modular prep/image-conditioning stage for controls like blur, sharpen, denoise, and future edge-preserving sampling.
-- Introduce typed color modes on top of the new palette foundation: `Mono`, `Tonal`, `Indexed`, `RGB`.
-- Refine shader quality once prep and color-mode boundaries are in place.
-- Add at least one more GPU-safe dither family after the current four.
+- Refine shader quality now that prep and color-mode boundaries are in place.
+- Add at least one more GPU-safe dither family after the current four (likely modulation or screen-flow).
 - Design the settings shape for future masks, transparency-aware processing, and text overlays without coupling them to Svelte or route code.
 - Decide whether capture/export hooks belong in the engine core or in adjacent tooling.
 - Add the first image palette import flow and worker-side extraction path.
 - Decide whether the next evaluation target should be a richer primitive scene variant or the first Blender-driven environment slice.
 - Evaluate whether the large client chunk should be split once the lab surface stabilizes.
+- Update Playwright render regression baselines to match the interpolation fix and new pipeline shape.
 
 ## Later
 

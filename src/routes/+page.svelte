@@ -42,6 +42,10 @@
 				spin: 0,
 				float: 0
 			},
+			prep: {
+				blur: 0,
+				sharpen: 0
+			},
 			finish: {
 				...next.finish,
 				grain: 0
