@@ -6,44 +6,41 @@ Do not build one giant pipeline for every medium.
 
 Build:
 
-- one canonical point model
-- several ingest pipelines
-- several output adapters
+- one point core
+- source-specific ingest paths
+- app-specific consumers
 
-This is the only sane way to support 2D, 3D, live media, scans, and future XR without turning the codebase into source-specific conditionals.
+## Likely Stack
 
-## Likely Stack Direction
-
-The implementation details may move into a new monorepo, but the likely technical direction is:
-
-- SvelteKit for app shells and tooling UIs
-- raw Three.js for the point renderer/runtime
+- SvelteKit for app shells and tooling
+- raw Three.js for rendering
 - Blender and glTF for authored 3D assets
 - TypeScript for core/runtime code
-- native iOS capture later for LiDAR-specific workflows
 
-The important rule is that the point core should not depend on Svelte component lifecycle or route ownership.
+The point core should not depend on Svelte component lifecycle or route ownership.
 
-## Canonical Runtime Model
+## Point Model
 
-The core primitive should be closer to a surfel than a minimal point.
+### Phase 1 Core
 
-Suggested fields:
+Keep the first payload minimal:
 
-- `id`
 - `position`
-- `normal`
 - `color`
 - `size`
+- `normal`
 - `opacity`
+
+### Future Fields
+
+Add later only when needed:
+
+- `id`
 - `sourceUv`
 - `sourceType`
 - `confidence`
 - `groupId`
 - `time`
-
-Optional deformation/binding fields:
-
 - `triangleId`
 - `barycentric`
 - `boneIndices`
@@ -51,164 +48,90 @@ Optional deformation/binding fields:
 - `bindPosition`
 - `bindNormal`
 
-Not every source needs every field.
-The model needs to be expressive enough that the runtime does not have to fork for each source family.
-
 ## System Layers
 
 ### 1. Ingest
 
-Source-specific importers produce canonical point data.
+Source-specific importers produce point data.
 
 Examples:
 
-- `gltf/blender` importer
-- `image` sampler
-- `video/webcam` particle sampler
-- `lidar/scan` importer
-- `depth/rgbd` importer
+- `gltf/blender`
+- `image`
+- `video/webcam`
+- `scan`
 
 ### 2. Processing
 
-Transforms points before render.
+Processing handles:
 
-Examples:
-
-- normalization and bounds
+- normalization
 - density control
-- decimation
-- clustering
 - culling
+- decimation
 - color transforms
-- temporal smoothing
-- LOD generation
 
 ### 3. Binding / Animation
 
-Updates points over time.
+Animated assets should not re-scatter points every frame.
 
-This is where animated 3D assets either succeed or fail.
+Preferred later options:
 
-Preferred strategies:
-
-- bind points to mesh triangles using barycentric coordinates
-- or skin points directly using bone weights
-- or use baked caches for heavily art-directed offline motion
-
-Avoid any approach that re-scatters points every frame.
+- triangle + barycentric binding
+- direct point skinning
+- baked caches when needed
 
 ### 4. Rendering
 
-The renderer should support at least:
+#### Phase 1 Recommendation
 
-- `THREE.Points` for cheap dense clouds
-- instanced discs/splats for higher-quality surfel-like rendering
+Start with `THREE.Points`.
+
+Why:
+
+- fastest route to a working proof
+- low implementation overhead
+- sufficient for points-on-black with glow
+
+Phase 1 target:
+
+- per-point color
+- per-point size
+- size attenuation
+- black clear color
+- restrained bloom
+
+#### Later Options
+
+Upgrade later only if needed:
+
+- instanced discs
+- splats/surfels
+- more advanced point materials
 - depth-aware compositing
-- additive or restrained bloom
-- size and opacity modulation
-- source-aware materials later
 
-### 5. Application Adapters
+## Phase 1 Asset Workflow
 
-Different apps consume the same runtime:
+Do not invent a custom point format yet.
 
-- studio/lab app
-- portfolio site
-- live media demo
-- capture/export tooling
-- future XR adapters
+For the first proof:
 
-## Source Families
+1. author the asset in Blender
+2. export a normal mesh as glTF
+3. load the mesh
+4. sample persistent points from the mesh at runtime
 
-### 3D Assets
-
-This is the most important path.
-
-Targets:
-
-- Blender-authored environments
-- props and objects
-- skinned characters
-- camera-composed scenes
-
-This should be the highest-quality path because it carries the main Chromatic world.
-
-### 2D Images And Video
-
-These should use a screen-space particle field or layered depth approximation.
-
-This path is good for:
-
-- project thumbnails
-- editorial treatments
-- live video experiments
-- homepage hero interactions
-
-This path is not a substitute for stable 3D character/world rendering.
-
-### LiDAR / Spatial Scans
-
-This is strategically interesting but should not define the initial architecture.
-
-For Apple devices, native capture is the realistic path.
-The web runtime should consume exported data rather than assume browser-first LiDAR APIs.
-
-### XR
-
-VR/AR is an adapter concern, not a foundation concern.
-The point runtime should be compatible with XR later, but XR support should not distort early decisions.
-
-## Repo Shape
-
-If Chromatic stays on this path, the likely long-term shape is a monorepo:
-
-```text
-apps/
-  site/
-  studio/
-  capture-ios/
-packages/
-  point-core/
-  point-renderer-three/
-  point-import-gltf/
-  point-import-image-video/
-  point-effects/
-  point-webxr/
-```
-
-This current repo may either:
-
-- become the seed of that monorepo
-- or remain a transition/prototype repo and later be replaced by a new dedicated repo
-
-The docs are intentionally written so either outcome is possible.
+Only move to a custom export format if runtime mesh sampling becomes an actual bottleneck or blocks the art workflow.
 
 ## Design Constraints
 
 - engine-first, app-second
 - framework-agnostic point core
-- serializable data and settings
-- stable IDs for temporal coherence
 - source adapters separated from render runtime
-- no Svelte-specific logic inside the core rendering model
-- no product-layer hacks inside ingest pipelines
+- preserve stable correspondence for temporal coherence
+- no product-layer hacks in ingest paths
 
-## Risks
+## Main Risk
 
-### Over-generalization
-
-Trying to support every source type equally on day one will stall the project.
-
-### Under-modeling
-
-If the point primitive is too minimal, skinned animation and scan workflows will force a redesign later.
-
-### Mistaking Effects For Foundation
-
-Bloom, jitter, and shaders are not the architecture.
-The hard problem is stable point identity and animation binding.
-
-### Repeating The Previous Mistake
-
-The dither reboot over-invested in a rendering direction before the final visual target was stable.
-The point pivot should prove the look with a narrow prototype before broader product work resumes.
+The biggest technical risk is not shaders.
+It is stable point identity and animation binding.

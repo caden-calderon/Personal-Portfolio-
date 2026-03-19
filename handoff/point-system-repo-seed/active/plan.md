@@ -1,76 +1,27 @@
-# Point-System Pivot Plan
+# Point-System Plan
 
 ## Goal
 
-Reframe Chromatic around a point-system rendering engine that can support:
+Build a point-based rendering runtime that can become the visual foundation for Chromatic.
 
-- Blender/glTF scenes
-- animated characters
-- images
-- video and webcam sources
-- future LiDAR/scan sources
-- future VR/AR adapters
+## Product Decision
 
-without tying the architecture to any single source type or app shell.
+The runtime is the platform.
+The website, train experience, studio, and future source adapters are consumers.
 
-## Core Decision
+## Phase 1 Build Target
 
-The renderer/runtime is the platform.
-The website, train scene, studio, and future capture/XR work are consumers of that platform.
-
-## What Carries Forward
-
-From the original Chromatic vision:
-
-- train-compartment worldbuilding
-- content mirroring between experiential and functional layers
-- cinematic atmosphere
-- interactive project presentation
-- portfolio as an authored experience rather than a plain site
-
-## What Changes
-
-The rendering foundation is no longer:
-
-- ASCII
-- braille
-- text-art post-processing
-- dither-first tone pipeline
-
-It is now:
-
-- persistent points
-- surfels
-- point-cloud-like rendering
-- stable temporal identity
-- source ingestion into a canonical point runtime
-
-## Architectural Direction
-
-Build:
-
-1. a canonical point representation
-2. importers for specific source families
-3. a Three.js-based renderer/runtime
-4. app adapters on top
-
-Do not build one giant source-specific pipeline.
-
-## Immediate Build Target
-
-The next meaningful prototype is a narrow proof of concept:
+Build the smallest proof that can validate the direction:
 
 - one static 3D asset
-- one persistent point renderer
-- one black-background visual presentation
-- point size/density/glow tuning
-
-Then prove animated surface binding before any broader product work.
+- `THREE.Points`
+- Blender -> glTF mesh export
+- runtime point sampling
+- black-background presentation
+- density/size/glow controls
 
 ## Success Criteria
 
-- the look is compelling enough to justify the pivot
-- animated points remain coherent
-- the runtime feels reusable across multiple source types
-- the docs are clear enough that a new agent can pick up work quickly
-
+- the look is strong enough to justify the pivot
+- the implementation is simple enough to extend
+- the next session produces code, not more strategy docs
